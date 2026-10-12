@@ -2,7 +2,6 @@ package com.soulforge.soulforge.fluid;
 
 import com.soulforge.soulforge.SoulForge;
 import com.soulforge.soulforge.SoulForgeRegistries;
-import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.Item;
@@ -20,9 +19,6 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 
 public class SoulForgeFluids {
-    public static final Identifier WATER_STILL = Identifier.withDefaultNamespace("block/water_still");
-    public static final Identifier WATER_FLOWING = Identifier.withDefaultNamespace("block/water_flow");
-
     public static final FluidSet MOLTEN_IRON = registerMolten("molten_iron", 1539, 0xFFB87333, 10);
     public static final FluidSet MOLTEN_GOLD = registerMolten("molten_gold", 1067, 0xFFFFD700, 10);
     public static final FluidSet MOLTEN_COPPER = registerMolten("molten_copper", 1083, 0xFFB87333, 10);
@@ -65,7 +61,7 @@ public class SoulForgeFluids {
                         .lightLevel(lightLevel)
                         .sound(SoundActions.BUCKET_FILL, SoundEvents.BUCKET_FILL)
                         .sound(SoundActions.BUCKET_EMPTY, SoundEvents.BUCKET_EMPTY),
-                        WATER_STILL, WATER_FLOWING, tintColor));
+                        tintColor));
 
         FluidReg reg = new FluidReg();
 

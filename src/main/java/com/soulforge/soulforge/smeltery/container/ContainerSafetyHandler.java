@@ -20,7 +20,11 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.access.ItemAccess;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
+
+import javax.annotation.Nullable;
 
 /**
  * Handles container overheat safety: incompatible containers holding superheated fluids
@@ -58,7 +62,7 @@ public class ContainerSafetyHandler {
         boolean hasGlove = off.is(SoulForgeItems.BLUNT_THERMAL_GLOVE.get());
 
         if (hasHotHand && !hasGlove) {
-            player.hurt(player.damageSources().onFire(), 1.0f);
+            player.hurtServer(player.level(), player.damageSources().onFire(), 1.0f);
         }
     }
 
@@ -97,12 +101,12 @@ public class ContainerSafetyHandler {
 
     /** Returns the fluid in the first non-empty tank of the item, or empty. */
     private static FluidStack getHeldFluid(ItemStack stack) {
-        IFluidHandlerItem handler = stack.getCapability(Capabilities.FluidHandler.ITEM);
+        ResourceHandler<FluidResource> handler = getFluidHandler(stack);
         if (handler != null) {
-            for (int t = 0; t < handler.getTanks(); t++) {
-                FluidStack inTank = handler.getFluidInTank(t);
+            for (int t = 0; t < handler.size(); t++) {
+                FluidStack inTank = handler.getResource(t).toStack(handler.getAmountAsInt(t));
                 if (!inTank.isEmpty()) {
-                    return inTank.copy();
+                    return inTank;
                 }
             }
         }
@@ -125,16 +129,14 @@ public class ContainerSafetyHandler {
 
     /** Gets the temperature of the fluid held in the item's first tank. */
     private static int getHeldFluidTemperature(ItemStack stack) {
-        IFluidHandlerItem handler = stack.getCapability(Capabilities.FluidHandler.ITEM);
-        if (handler != null) {
-            for (int t = 0; t < handler.getTanks(); t++) {
-                FluidStack inTank = handler.getFluidInTank(t);
-                if (!inTank.isEmpty()) {
-                    return FuelTemperatureRegistry.getTemperature(inTank);
-                }
-            }
-        }
-        return 0;
+        FluidStack inTank = getHeldFluid(stack);
+        return inTank.isEmpty() ? 0 : FuelTemperatureRegistry.getTemperature(inTank);
+    }
+
+    /** 取物品的流体能力；无能力时返回 null。 */
+    @Nullable
+    private static ResourceHandler<FluidResource> getFluidHandler(ItemStack stack) {
+        return stack.getCapability(Capabilities.Fluid.ITEM, ItemAccess.forStack(stack));
     }
 
     /**

@@ -1,12 +1,13 @@
 package com.soulforge.soulforge.block.entity;
 
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.TransferPreconditions;
 import net.neoforged.neoforge.transfer.fluid.FluidResource;
 import net.neoforged.neoforge.transfer.transaction.SnapshotJournal;
@@ -18,7 +19,7 @@ import net.neoforged.neoforge.transfer.transaction.TransactionContext;
  * 如果找到配方则将容量设为配方所需流体量。
  * 只有第一个灌入的流体类型被接受（filter 机制）。
  */
-public class CastingFluidHandler extends SnapshotJournal<FluidStack> {
+public class CastingFluidHandler extends SnapshotJournal<FluidStack> implements ResourceHandler<FluidResource> {
     private final AbstractCastingBlockEntity tile;
     private FluidStack fluid = FluidStack.EMPTY;
     private int capacity = 0;
@@ -145,28 +146,34 @@ public class CastingFluidHandler extends SnapshotJournal<FluidStack> {
         return stack;
     }
 
-    /* ResourceHandler 视图：供 NeoForge 流体能力与桶交互使用。 */
+    /* ResourceHandler 实现：供 NeoForge 流体能力与桶交互使用。 */
 
+    @Override
     public int size() {
         return 1;
     }
 
+    @Override
     public FluidResource getResource(int index) {
         return index == 0 ? FluidResource.of(fluid) : FluidResource.EMPTY;
     }
 
+    @Override
     public long getAmountAsLong(int index) {
         return index == 0 ? fluid.getAmount() : 0;
     }
 
+    @Override
     public long getCapacityAsLong(int index, FluidResource resource) {
         return getCapacity();
     }
 
+    @Override
     public boolean isValid(int index, FluidResource resource) {
         return index == 0 && (resource.isEmpty() || isFluidValid(resource.toStack(1)));
     }
 
+    @Override
     public int insert(int index, FluidResource resource, int amount, TransactionContext transaction) {
         TransferPreconditions.checkNonEmptyNonNegative(resource, amount);
         if (index != 0) {
@@ -180,6 +187,7 @@ public class CastingFluidHandler extends SnapshotJournal<FluidStack> {
         return inserted;
     }
 
+    @Override
     public int extract(int index, FluidResource resource, int amount, TransactionContext transaction) {
         TransferPreconditions.checkNonEmptyNonNegative(resource, amount);
         if (index != 0 || !resource.matches(fluid)) {
@@ -214,10 +222,10 @@ public class CastingFluidHandler extends SnapshotJournal<FluidStack> {
     private static final String TAG_FILTER = "filter";
     private static final String TAG_CAPACITY = "capacity";
 
-    public void readFromNBT(HolderLookup.Provider registries, CompoundTag nbt) {
-        capacity = nbt.getIntOr(TAG_CAPACITY, 0);
-        nbt.getCompound(TAG_FLUID).ifPresent(tag -> fluid = FluidStack.parse(registries, tag).orElse(FluidStack.EMPTY));
-        nbt.getString(TAG_FILTER).ifPresent(name -> {
+    public void readFromNBT(ValueInput input) {
+        capacity = input.getIntOr(TAG_CAPACITY, 0);
+        input.read(TAG_FLUID, FluidStack.OPTIONAL_CODEC).ifPresent(stack -> fluid = stack);
+        input.getString(TAG_FILTER).ifPresent(name -> {
             Fluid fluidType = BuiltInRegistries.FLUID.getValue(Identifier.parse(name));
             if (fluidType != null && fluidType != Fluids.EMPTY) {
                 filter = fluidType;
@@ -225,14 +233,13 @@ public class CastingFluidHandler extends SnapshotJournal<FluidStack> {
         });
     }
 
-    public CompoundTag writeToNBT(HolderLookup.Provider registries, CompoundTag nbt) {
-        nbt.putInt(TAG_CAPACITY, capacity);
+    public void writeToNBT(ValueOutput output) {
+        output.putInt(TAG_CAPACITY, capacity);
         if (!fluid.isEmpty()) {
-            nbt.put(TAG_FLUID, fluid.save(registries, new CompoundTag()));
+            output.store(TAG_FLUID, FluidStack.OPTIONAL_CODEC, fluid);
         }
         if (filter != Fluids.EMPTY) {
-            nbt.putString(TAG_FILTER, BuiltInRegistries.FLUID.getKey(filter).toString());
+            output.putString(TAG_FILTER, BuiltInRegistries.FLUID.getKey(filter).toString());
         }
-        return nbt;
     }
 }

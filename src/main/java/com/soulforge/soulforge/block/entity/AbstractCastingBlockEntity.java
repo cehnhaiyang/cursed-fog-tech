@@ -5,13 +5,16 @@ import com.soulforge.soulforge.recipe.casting.CastingRecipe;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.SingleRecipeInput;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -169,7 +172,7 @@ public abstract class AbstractCastingBlockEntity extends BlockEntity implements 
             int slot = output.isEmpty() ? INPUT : OUTPUT;
             ItemStack stack = items[slot];
             if (!player.getInventory().add(stack)) {
-                player.drop(stack, false);
+                player.drop(stack, false, net.minecraft.util.Prediction.SERVER_ONLY);
             }
             items[slot] = ItemStack.EMPTY;
             player.setItemInHand(hand, held);
@@ -214,8 +217,12 @@ public abstract class AbstractCastingBlockEntity extends BlockEntity implements 
      */
     @Nullable
     private CastingRecipe findCastingRecipe(Level level, FluidStack fluid, ItemStack cast) {
-        List<RecipeHolder<CastingRecipe>> recipes = level.getRecipeManager()
-                .getRecipesFor(SoulForgeRecipeTypes.CASTING.get(), new net.minecraft.world.item.crafting.SingleRecipeInput(cast), level);
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return null;
+        }
+        List<RecipeHolder<CastingRecipe>> recipes = serverLevel.recipeAccess().recipeMap()
+                .getRecipesFor(SoulForgeRecipeTypes.CASTING.get(), new SingleRecipeInput(cast), level)
+                .toList();
         for (RecipeHolder<CastingRecipe> holder : recipes) {
             CastingRecipe recipe = holder.value();
             // 类型必须匹配（台面 vs 盆）
@@ -223,11 +230,11 @@ public abstract class AbstractCastingBlockEntity extends BlockEntity implements 
                 continue;
             }
             // 流体必须匹配
-            if (!recipe.getFluid().getFluid().equals(fluid.getFluid())) {
+            if (!FluidStack.isSameFluid(recipe.getFluid(), fluid)) {
                 continue;
             }
             // 铸模必须匹配（无铸模配方或铸模测试通过）
-            if (recipe.getCast().isEmpty() || recipe.getCast().test(cast)) {
+            if (Ingredient.testOptionalIngredient(recipe.getCast(), cast)) {
                 return recipe;
             }
         }
@@ -335,7 +342,7 @@ public abstract class AbstractCastingBlockEntity extends BlockEntity implements 
     @Override
     public void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
-        tank.readFromNBT(input.lookup(), input.read("tank", CompoundTag.CODEC).orElseGet(CompoundTag::new));
+        tank.readFromNBT(input.childOrEmpty(TAG_TANK));
         timer = input.getIntOr(TAG_TIMER, 0);
         coolingTime = input.getIntOr(TAG_COOLING_TIME, -1);
         input.read(TAG_INPUT, ItemStack.CODEC).ifPresent(stack -> items[INPUT] = stack);
@@ -345,7 +352,7 @@ public abstract class AbstractCastingBlockEntity extends BlockEntity implements 
     @Override
     protected void saveAdditional(ValueOutput output) {
         super.saveAdditional(output);
-        output.store(TAG_TANK, CompoundTag.CODEC, tank.writeToNBT(output.lookup(), new CompoundTag()));
+        tank.writeToNBT(output.child(TAG_TANK));
         output.putInt(TAG_TIMER, timer);
         output.putInt(TAG_COOLING_TIME, coolingTime);
         if (!items[INPUT].isEmpty()) {

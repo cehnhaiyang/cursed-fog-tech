@@ -5,7 +5,6 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.soulforge.soulforge.recipe.SoulForgeRecipeSerializers;
 import com.soulforge.soulforge.recipe.SoulForgeRecipeTypes;
-import net.minecraft.core.NonNullList;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -48,7 +47,7 @@ public class MeltingRecipe implements Recipe<SingleRecipeInput> {
     private final int time;
 
     public MeltingRecipe(Ingredient input, FluidStack output, int temperature, int time) {
-        this.input = input != null ? input : Ingredient.EMPTY;
+        this.input = input != null ? input : Ingredient.of();
         this.output = output != null ? output.copy() : FluidStack.EMPTY;
         this.temperature = temperature;
         this.time = time;
@@ -68,13 +67,6 @@ public class MeltingRecipe implements Recipe<SingleRecipeInput> {
 
     public int getTime() {
         return time;
-    }
-
-    @Override
-    public NonNullList<Ingredient> getIngredients() {
-        NonNullList<Ingredient> list = NonNullList.create();
-        list.add(input);
-        return list;
     }
 
     @Override

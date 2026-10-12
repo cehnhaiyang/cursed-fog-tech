@@ -382,9 +382,9 @@ public class SmelteryControllerBlockEntity extends BlockEntity implements MenuPr
         }
         BlockPos min = structure.getMin();
         BlockPos max = structure.getMax();
-        int x = min.getX() + level.random.nextInt(max.getX() - min.getX() + 1);
-        int y = min.getY() + level.random.nextInt(max.getY() - min.getY() + 1);
-        int z = min.getZ() + level.random.nextInt(max.getZ() - min.getZ() + 1);
+        int x = min.getX() + level.getRandom().nextInt(max.getX() - min.getX() + 1);
+        int y = min.getY() + level.getRandom().nextInt(max.getY() - min.getY() + 1);
+        int z = min.getZ() + level.getRandom().nextInt(max.getZ() - min.getZ() + 1);
         BlockPos target = new BlockPos(x, y, z);
         if (!level.isEmptyBlock(target)) {
             level.destroyBlock(target, true);

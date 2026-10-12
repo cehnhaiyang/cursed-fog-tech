@@ -33,9 +33,7 @@ public class ControllerScreen extends AbstractContainerScreen<ControllerMenu> {
     private static final int ARROW_HEIGHT = 16;
 
     public ControllerScreen(ControllerMenu menu, Inventory inventory, Component title) {
-        super(menu, inventory, title);
-        this.imageWidth = 176;
-        this.imageHeight = 166;
+        super(menu, inventory, title, 176, 166);
         this.inventoryLabelX = 8;
         this.inventoryLabelY = this.imageHeight - 94;
     }

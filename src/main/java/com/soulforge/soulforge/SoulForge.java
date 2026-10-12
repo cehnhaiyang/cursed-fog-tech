@@ -21,7 +21,7 @@ public class SoulForge {
     public SoulForge(IEventBus modEventBus, ModContainer modContainer) {
         SoulForgeRegistries.register(modEventBus);
         modEventBus.addListener(this::commonSetup);
-        modContainer.registerConfig(ModConfig.Type.COMMON, SoulForgeConfig.SPEC);
+        modContainer.registerConfig(ModConfig.Type.STARTUP, SoulForgeConfig.SPEC);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
