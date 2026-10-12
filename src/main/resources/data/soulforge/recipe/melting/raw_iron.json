@@ -1,8 +1,6 @@
 {
   "type": "soulforge:melting",
-  "input": {
-    "item": "minecraft:raw_iron"
-  },
+  "input": "minecraft:raw_iron",
   "output": {
     "id": "soulforge:molten_iron",
     "amount": 144

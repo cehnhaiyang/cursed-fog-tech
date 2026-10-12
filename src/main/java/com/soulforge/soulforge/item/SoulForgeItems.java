@@ -49,9 +49,11 @@ public class SoulForgeItems {
     public static final DeferredItem<BlockItem> MAGVAC_ALLOY_BLOCK = SoulForgeRegistries.ITEMS.registerSimpleBlockItem(SoulForgeBlocks.MAGVAC_ALLOY_BLOCK, p -> p.fireResistant());
 
     // Tank block items
-    public static final DeferredItem<BlockItem> NETHERITE_FUEL_TANK_BLOCK = SoulForgeRegistries.ITEMS.registerSimpleBlockItem(SoulForgeBlocks.NETHERITE_FUEL_TANK, p -> p.fireResistant());
-    public static final DeferredItem<BlockItem> TRINITY_ALLOY_FUEL_TANK_BLOCK = SoulForgeRegistries.ITEMS.registerSimpleBlockItem(SoulForgeBlocks.TRINITY_ALLOY_FUEL_TANK, p -> p.fireResistant());
-    public static final DeferredItem<BlockItem> MAGVAC_FUEL_TANK_BLOCK = SoulForgeRegistries.ITEMS.registerSimpleBlockItem(SoulForgeBlocks.MAGVAC_FUEL_TANK, p -> p.fireResistant());
+    // 注册名必须显式指定：方块与可装流体的物品同名（netherite_fuel_tank），
+    // 走 Holder 重载会按方块名注册而撞名。
+    public static final DeferredItem<BlockItem> NETHERITE_FUEL_TANK_BLOCK = SoulForgeRegistries.ITEMS.registerSimpleBlockItem("netherite_fuel_tank_block", SoulForgeBlocks.NETHERITE_FUEL_TANK, p -> p.fireResistant());
+    public static final DeferredItem<BlockItem> TRINITY_ALLOY_FUEL_TANK_BLOCK = SoulForgeRegistries.ITEMS.registerSimpleBlockItem("trinity_alloy_fuel_tank_block", SoulForgeBlocks.TRINITY_ALLOY_FUEL_TANK, p -> p.fireResistant());
+    public static final DeferredItem<BlockItem> MAGVAC_FUEL_TANK_BLOCK = SoulForgeRegistries.ITEMS.registerSimpleBlockItem("magvac_fuel_tank_block", SoulForgeBlocks.MAGVAC_FUEL_TANK, p -> p.fireResistant());
 
     // Brick block items
     public static final DeferredItem<BlockItem> SMELTERY_BRICKS = SoulForgeRegistries.ITEMS.registerSimpleBlockItem(SoulForgeBlocks.SMELTERY_BRICKS);

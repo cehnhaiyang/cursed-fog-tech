@@ -5,7 +5,7 @@
     " T "
   ],
   "key": {
-    "T": { "item": "soulforge:trinity_alloy_ingot" }
+    "T": "soulforge:trinity_alloy_ingot"
   },
   "result": {
     "id": "soulforge:trinity_alloy_bucket"

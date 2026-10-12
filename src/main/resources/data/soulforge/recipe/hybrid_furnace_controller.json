@@ -1,8 +1,8 @@
 {
   "type": "minecraft:crafting_shapeless",
   "ingredients": [
-    { "item": "soulforge:magvac_generator" },
-    { "item": "soulforge:advanced_smeltery_controller" }
+    "soulforge:magvac_generator",
+    "soulforge:advanced_smeltery_controller"
   ],
   "result": {
     "id": "soulforge:hybrid_furnace_controller"

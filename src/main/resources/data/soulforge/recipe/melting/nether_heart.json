@@ -1,8 +1,6 @@
 {
   "type": "soulforge:melting",
-  "input": {
-    "item": "soulforge:nether_heart"
-  },
+  "input": "soulforge:nether_heart",
   "output": {
     "id": "soulforge:molten_nether_heart",
     "amount": 500

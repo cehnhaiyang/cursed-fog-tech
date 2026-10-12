@@ -6,8 +6,8 @@
     "NNN"
   ],
   "key": {
-    "N": { "item": "minecraft:netherite_ingot" },
-    "S": { "item": "soulforge:smeltery_controller" }
+    "N": "minecraft:netherite_ingot",
+    "S": "soulforge:smeltery_controller"
   },
   "result": {
     "id": "soulforge:intermediate_smeltery_controller"

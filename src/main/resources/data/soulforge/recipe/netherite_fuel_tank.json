@@ -6,8 +6,8 @@
     "NNN"
   ],
   "key": {
-    "N": { "item": "minecraft:netherite_ingot" },
-    "G": { "item": "minecraft:glass" }
+    "N": "minecraft:netherite_ingot",
+    "G": "minecraft:glass"
   },
   "result": {
     "id": "soulforge:netherite_fuel_tank"

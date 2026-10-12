@@ -6,9 +6,9 @@
     "ECE"
   ],
   "key": {
-    "E": { "item": "minecraft:ender_eye" },
-    "C": { "item": "minecraft:chorus_fruit" },
-    "R": { "item": "minecraft:redstone" }
+    "E": "minecraft:ender_eye",
+    "C": "minecraft:chorus_fruit",
+    "R": "minecraft:redstone"
   },
   "result": {
     "id": "soulforge:vacuum_generator"

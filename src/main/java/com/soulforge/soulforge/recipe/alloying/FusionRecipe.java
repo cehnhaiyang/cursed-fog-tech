@@ -17,14 +17,14 @@ import net.minecraft.world.item.crafting.RecipeType;
  */
 public class FusionRecipe extends AlloyingRecipe {
     public static final MapCodec<FusionRecipe> CODEC = AlloyingRecipe.CODEC.xmap(
-            recipe -> new FusionRecipe(recipe.getInputs(), recipe.getRatios(), recipe.getOutput(),
+            recipe -> new FusionRecipe(recipe.getInputs(), recipe.getRatios(), recipe.getOutputTemplate(),
                     recipe.getCustomName(), recipe.getColor()),
             recipe -> recipe
     );
 
     public static final StreamCodec<RegistryFriendlyByteBuf, FusionRecipe> STREAM_CODEC =
             AlloyingRecipe.STREAM_CODEC.map(
-                    recipe -> new FusionRecipe(recipe.getInputs(), recipe.getRatios(), recipe.getOutput(),
+                    recipe -> new FusionRecipe(recipe.getInputs(), recipe.getRatios(), recipe.getOutputTemplate(),
                             recipe.getCustomName(), recipe.getColor()),
                     recipe -> recipe
             );
@@ -33,7 +33,7 @@ public class FusionRecipe extends AlloyingRecipe {
 
     public FusionRecipe(java.util.List<net.neoforged.neoforge.fluids.crafting.FluidIngredient> inputs,
                         java.util.List<Integer> ratios,
-                        net.neoforged.neoforge.fluids.FluidStack output,
+                        net.neoforged.neoforge.fluids.FluidStackTemplate output,
                         String customName, int color) {
         super(inputs, ratios, output, customName, color);
     }

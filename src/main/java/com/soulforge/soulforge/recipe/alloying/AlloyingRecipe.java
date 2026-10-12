@@ -23,6 +23,7 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidStackTemplate;
 import net.neoforged.neoforge.fluids.crafting.FluidIngredient;
 
 import java.util.ArrayList;
@@ -36,7 +37,7 @@ public class AlloyingRecipe implements Recipe<RecipeInput> {
     public static final MapCodec<AlloyingRecipe> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             FluidIngredient.CODEC.listOf().fieldOf("inputs").forGetter(AlloyingRecipe::getInputs),
             Codec.INT.listOf().optionalFieldOf("ratios", List.of()).forGetter(AlloyingRecipe::getRatios),
-            FluidStack.CODEC.fieldOf("output").forGetter(AlloyingRecipe::getOutput),
+            FluidStackTemplate.CODEC.fieldOf("output").forGetter(AlloyingRecipe::getOutputTemplate),
             Codec.STRING.optionalFieldOf("customName", "").forGetter(AlloyingRecipe::getCustomName),
             Codec.INT.optionalFieldOf("color", 0).forGetter(AlloyingRecipe::getColor)
     ).apply(instance, AlloyingRecipe::new));
@@ -44,7 +45,7 @@ public class AlloyingRecipe implements Recipe<RecipeInput> {
     public static final StreamCodec<RegistryFriendlyByteBuf, AlloyingRecipe> STREAM_CODEC = StreamCodec.composite(
             FluidIngredient.STREAM_CODEC.apply(ByteBufCodecs.list()), AlloyingRecipe::getInputs,
             ByteBufCodecs.INT.apply(ByteBufCodecs.list()), AlloyingRecipe::getRatios,
-            FluidStack.STREAM_CODEC, AlloyingRecipe::getOutput,
+            FluidStackTemplate.STREAM_CODEC, AlloyingRecipe::getOutputTemplate,
             ByteBufCodecs.STRING_UTF8, AlloyingRecipe::getCustomName,
             ByteBufCodecs.INT, AlloyingRecipe::getColor,
             AlloyingRecipe::new
@@ -54,15 +55,15 @@ public class AlloyingRecipe implements Recipe<RecipeInput> {
 
     private final List<FluidIngredient> inputs;
     private final List<Integer> ratios;
-    private final FluidStack output;
+    private final FluidStackTemplate output;
     private final String customName;
     private final int color;
 
-    public AlloyingRecipe(List<FluidIngredient> inputs, List<Integer> ratios, FluidStack output,
+    public AlloyingRecipe(List<FluidIngredient> inputs, List<Integer> ratios, FluidStackTemplate output,
                           String customName, int color) {
         this.inputs = inputs != null ? inputs : List.of();
         this.ratios = ratios != null && !ratios.isEmpty() ? ratios : defaultRatios(this.inputs.size());
-        this.output = output != null ? output : FluidStack.EMPTY;
+        this.output = output;
         this.customName = customName != null ? customName : "";
         this.color = color;
     }
@@ -83,8 +84,13 @@ public class AlloyingRecipe implements Recipe<RecipeInput> {
         return ratios;
     }
 
-    public FluidStack getOutput() {
+    public FluidStackTemplate getOutputTemplate() {
         return output;
+    }
+
+    /** 合金产物（尚未附带 {@link AlloyMixture} 组件）。 */
+    public FluidStack getOutput() {
+        return output.create();
     }
 
     public String getCustomName() {
@@ -122,7 +128,7 @@ public class AlloyingRecipe implements Recipe<RecipeInput> {
         mixture.setColor(color);
         mixture.normalize();
 
-        FluidStack result = output.copy();
+        FluidStack result = output.create();
         AlloyData.setMixture(result, mixture);
         return result;
     }
@@ -143,6 +149,15 @@ public class AlloyingRecipe implements Recipe<RecipeInput> {
     @Override
     public ItemStack assemble(RecipeInput input) {
         return ItemStack.EMPTY;
+    }
+
+    /**
+     * 合金配方没有物品输入（流体才是输入），无法放进配方书网格。
+     * 标记为 special 以免 {@code RecipeManager} 对空 ingredients 报警告。
+     */
+    @Override
+    public boolean isSpecial() {
+        return true;
     }
 
     @Override

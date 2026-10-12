@@ -6,9 +6,9 @@
     "PSP"
   ],
   "key": {
-    "P": { "tag": "minecraft:planks" },
-    "G": { "item": "soulforge:glove" },
-    "S": { "item": "minecraft:string" }
+    "P": "#minecraft:planks",
+    "G": "soulforge:glove",
+    "S": "minecraft:string"
   },
   "result": {
     "id": "soulforge:blunt_thermal_glove"

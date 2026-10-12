@@ -18,6 +18,8 @@ import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 
+import java.util.List;
+
 public class SoulForgeFluids {
     public static final FluidSet MOLTEN_IRON = registerMolten("molten_iron", 1539, 0xFFB87333, 10);
     public static final FluidSet MOLTEN_GOLD = registerMolten("molten_gold", 1067, 0xFFFFD700, 10);
@@ -39,6 +41,13 @@ public class SoulForgeFluids {
     public static final FluidSet MOLTEN_NETHER_HEART = registerMolten("molten_nether_heart", 10000, 0xFF800000, 15);
     public static final FluidSet MOLTEN_ENDER_PEARL = registerMolten("molten_ender_pearl", 3500, 0xFF2E004F, 12);
     public static final FluidSet MOLTEN_NETHER_STAR = registerMolten("molten_nether_star", 2500, 0xFFF0F0F0, 15);
+
+    /** 全部流体。客户端按此列表注册流体模型。 */
+    public static final List<FluidSet> ALL = List.of(
+            MOLTEN_IRON, MOLTEN_GOLD, MOLTEN_COPPER, MOLTEN_COBALT, MOLTEN_NETHERITE,
+            MOLTEN_DIAMOND, MOLTEN_QUARTZ, MOLTEN_OBSIDIAN, MOLTEN_TRINITY_ALLOY, MOLTEN_SINGULARITY,
+            BLAZING_BLOOD, ACTIVATED_BLAZING_BLOOD, IONIZED_BLAZING_BLOOD, PLASMA_BLAZING_BLOOD,
+            ETERNAL_BLAZING_BLOOD, MOLTEN_NETHER_HEART, MOLTEN_ENDER_PEARL, MOLTEN_NETHER_STAR);
 
     public static void register() {
     }
@@ -69,14 +78,16 @@ public class SoulForgeFluids {
                 () -> new BaseFlowingFluid.Source(makeProperties(type, reg)));
         reg.flowing = SoulForgeRegistries.FLUIDS.register(name + "_flowing",
                 () -> new BaseFlowingFluid.Flowing(makeProperties(type, reg)));
-        reg.bucket = SoulForgeRegistries.ITEMS.register(name + "_bucket",
-                () -> new BucketItem(reg.still.get(), new Item.Properties().stacksTo(1).craftRemainder(Items.BUCKET).fireResistant()));
-        reg.block = SoulForgeRegistries.BLOCKS.register(name,
-                () -> new LiquidBlock(reg.still.get(), BlockBehaviour.Properties.ofFullCopy(Blocks.LAVA)
-                        .mapColor(MapColor.COLOR_RED)
-                        .noLootTable()));
+        // 必须走 registerItem/registerBlock：26.3 起方块与物品的注册名要写进 Properties，
+        // 裸 register(name, Supplier) 不做这件事，构造时会抛 "Item/Block id not set"。
+        reg.bucket = SoulForgeRegistries.ITEMS.registerItem(name + "_bucket",
+                props -> new BucketItem(reg.still.get(), props),
+                p -> p.stacksTo(1).craftRemainder(Items.BUCKET).fireResistant());
+        reg.block = SoulForgeRegistries.BLOCKS.registerBlock(name,
+                props -> new LiquidBlock(reg.still.get(), props),
+                () -> BlockBehaviour.Properties.ofFullCopy(Blocks.LAVA).mapColor(MapColor.COLOR_RED).noLootTable());
 
-        return new FluidSet(name, type, reg.still, reg.flowing, reg.bucket, reg.block);
+        return new FluidSet(name, tintColor, type, reg.still, reg.flowing, reg.bucket, reg.block);
     }
 
     private static BaseFlowingFluid.Properties makeProperties(DeferredHolder<FluidType, FluidType> type, FluidReg reg) {
@@ -93,6 +104,7 @@ public class SoulForgeFluids {
     }
 
     public record FluidSet(String name,
+                           int tintColor,
                            DeferredHolder<FluidType, FluidType> type,
                            DeferredHolder<Fluid, BaseFlowingFluid.Source> still,
                            DeferredHolder<Fluid, BaseFlowingFluid.Flowing> flowing,

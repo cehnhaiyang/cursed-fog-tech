@@ -1,8 +1,6 @@
 {
   "type": "soulforge:melting",
-  "input": {
-    "item": "minecraft:ender_pearl"
-  },
+  "input": "minecraft:ender_pearl",
   "output": {
     "id": "soulforge:molten_ender_pearl",
     "amount": 250

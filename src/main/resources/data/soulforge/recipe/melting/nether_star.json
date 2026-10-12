@@ -1,8 +1,6 @@
 {
   "type": "soulforge:melting",
-  "input": {
-    "item": "minecraft:nether_star"
-  },
+  "input": "minecraft:nether_star",
   "output": {
     "id": "soulforge:molten_nether_star",
     "amount": 500

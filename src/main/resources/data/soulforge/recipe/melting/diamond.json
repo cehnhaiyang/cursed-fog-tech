@@ -1,8 +1,6 @@
 {
   "type": "soulforge:melting",
-  "input": {
-    "item": "minecraft:diamond"
-  },
+  "input": "minecraft:diamond",
   "output": {
     "id": "soulforge:molten_diamond",
     "amount": 144

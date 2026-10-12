@@ -109,8 +109,8 @@ public abstract class AbstractCastingBlockEntity extends BlockEntity implements 
                 // 冷却完成，产出
                 FluidStack currentFluid = tank.getFluid();
                 // 重新验证配方
-                if (!currentRecipe.getFluid().getFluid().equals(currentFluid.getFluid())
-                        || currentRecipe.getFluid().getAmount() > currentFluid.getAmount()) {
+                if (!FluidStack.isSameFluid(currentFluid, currentRecipe.getFluidTemplate())
+                        || currentRecipe.getFluidAmount() > currentFluid.getAmount()) {
                     currentRecipe = findCastingRecipe(level);
                     if (currentRecipe == null) {
                         timer = 0;
@@ -118,7 +118,7 @@ public abstract class AbstractCastingBlockEntity extends BlockEntity implements 
                     }
                 }
                 // 产出物品
-                ItemStack output = currentRecipe.getOutput().copy();
+                ItemStack output = currentRecipe.getOutput();
                 boolean consumed = true; // 简化：铸模总是被消耗
                 if (!items[OUTPUT].isEmpty()) {
                     // 输出槽有东西，放到输入槽
@@ -130,7 +130,7 @@ public abstract class AbstractCastingBlockEntity extends BlockEntity implements 
                     items[OUTPUT] = output;
                 }
                 // 消耗流体
-                tank.drain(currentRecipe.getFluid().getAmount(), false);
+                tank.drain(currentRecipe.getFluidAmount(), false);
                 level.playSound(null, getBlockPos(), SoundEvents.LAVA_EXTINGUISH, SoundSource.BLOCKS, 0.5f, 4f);
                 reset();
                 setChanged();
@@ -207,7 +207,7 @@ public abstract class AbstractCastingBlockEntity extends BlockEntity implements 
             if (execute) {
                 this.currentRecipe = recipe;
             }
-            return recipe.getFluid().getAmount();
+            return recipe.getFluidAmount();
         }
         return 0;
     }
@@ -230,7 +230,7 @@ public abstract class AbstractCastingBlockEntity extends BlockEntity implements 
                 continue;
             }
             // 流体必须匹配
-            if (!FluidStack.isSameFluid(recipe.getFluid(), fluid)) {
+            if (!FluidStack.isSameFluid(fluid, recipe.getFluidTemplate())) {
                 continue;
             }
             // 铸模必须匹配（无铸模配方或铸模测试通过）

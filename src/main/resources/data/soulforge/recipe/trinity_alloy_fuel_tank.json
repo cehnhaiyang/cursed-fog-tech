@@ -6,8 +6,8 @@
     "TTT"
   ],
   "key": {
-    "T": { "item": "soulforge:trinity_alloy_ingot" },
-    "G": { "item": "minecraft:glass" }
+    "T": "soulforge:trinity_alloy_ingot",
+    "G": "minecraft:glass"
   },
   "result": {
     "id": "soulforge:trinity_alloy_fuel_tank"

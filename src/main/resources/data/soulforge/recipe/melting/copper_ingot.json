@@ -1,8 +1,6 @@
 {
   "type": "soulforge:melting",
-  "input": {
-    "item": "minecraft:copper_ingot"
-  },
+  "input": "minecraft:copper_ingot",
   "output": {
     "id": "soulforge:molten_copper",
     "amount": 144

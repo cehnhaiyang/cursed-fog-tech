@@ -6,8 +6,8 @@
     "TTT"
   ],
   "key": {
-    "T": { "item": "soulforge:trinity_alloy_ingot" },
-    "I": { "item": "soulforge:intermediate_smeltery_controller" }
+    "T": "soulforge:trinity_alloy_ingot",
+    "I": "soulforge:intermediate_smeltery_controller"
   },
   "result": {
     "id": "soulforge:advanced_smeltery_controller"

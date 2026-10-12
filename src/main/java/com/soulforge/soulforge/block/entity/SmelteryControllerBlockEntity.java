@@ -248,10 +248,11 @@ public class SmelteryControllerBlockEntity extends BlockEntity implements MenuPr
         }
 
         // 检查熔融罐是否能容纳产物
-        FluidResource outputResource = FluidResource.of(activeRecipe.getOutput());
+        FluidStack outputStack = activeRecipe.getOutput();
+        FluidResource outputResource = FluidResource.of(outputStack);
         try (Transaction tx = Transaction.openRoot()) {
-            int canFill = meltTank.insert(0, outputResource, activeRecipe.getOutput().getAmount(), tx);
-            if (canFill < activeRecipe.getOutput().getAmount()) {
+            int canFill = meltTank.insert(0, outputResource, outputStack.getAmount(), tx);
+            if (canFill < outputStack.getAmount()) {
                 // 罐已满或流体类型不匹配
                 return;
             }
@@ -291,7 +292,7 @@ public class SmelteryControllerBlockEntity extends BlockEntity implements MenuPr
             }
             // 产出流体
             try (Transaction tx = Transaction.openRoot()) {
-                meltTank.insert(0, outputResource, activeRecipe.getOutput().getAmount(), tx);
+                meltTank.insert(0, outputResource, outputStack.getAmount(), tx);
                 tx.commit();
             }
             meltProgress = 0;

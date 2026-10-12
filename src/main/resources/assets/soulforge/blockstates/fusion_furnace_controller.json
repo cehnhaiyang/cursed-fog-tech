@@ -1,23 +1,67 @@
 {
   "variants": {
-    "facing=north": {
+    "facing=north,in_structure=false,active=false": {
       "model": "soulforge:block/fusion_furnace_controller",
-      "x": 0,
       "y": 0
     },
-    "facing=south": {
+    "facing=north,in_structure=false,active=true": {
       "model": "soulforge:block/fusion_furnace_controller",
-      "x": 0,
+      "y": 0
+    },
+    "facing=north,in_structure=true,active=false": {
+      "model": "soulforge:block/fusion_furnace_controller",
+      "y": 0
+    },
+    "facing=north,in_structure=true,active=true": {
+      "model": "soulforge:block/fusion_furnace_controller",
+      "y": 0
+    },
+    "facing=south,in_structure=false,active=false": {
+      "model": "soulforge:block/fusion_furnace_controller",
       "y": 180
     },
-    "facing=east": {
+    "facing=south,in_structure=false,active=true": {
       "model": "soulforge:block/fusion_furnace_controller",
-      "x": 0,
+      "y": 180
+    },
+    "facing=south,in_structure=true,active=false": {
+      "model": "soulforge:block/fusion_furnace_controller",
+      "y": 180
+    },
+    "facing=south,in_structure=true,active=true": {
+      "model": "soulforge:block/fusion_furnace_controller",
+      "y": 180
+    },
+    "facing=east,in_structure=false,active=false": {
+      "model": "soulforge:block/fusion_furnace_controller",
       "y": 90
     },
-    "facing=west": {
+    "facing=east,in_structure=false,active=true": {
       "model": "soulforge:block/fusion_furnace_controller",
-      "x": 0,
+      "y": 90
+    },
+    "facing=east,in_structure=true,active=false": {
+      "model": "soulforge:block/fusion_furnace_controller",
+      "y": 90
+    },
+    "facing=east,in_structure=true,active=true": {
+      "model": "soulforge:block/fusion_furnace_controller",
+      "y": 90
+    },
+    "facing=west,in_structure=false,active=false": {
+      "model": "soulforge:block/fusion_furnace_controller",
+      "y": 270
+    },
+    "facing=west,in_structure=false,active=true": {
+      "model": "soulforge:block/fusion_furnace_controller",
+      "y": 270
+    },
+    "facing=west,in_structure=true,active=false": {
+      "model": "soulforge:block/fusion_furnace_controller",
+      "y": 270
+    },
+    "facing=west,in_structure=true,active=true": {
+      "model": "soulforge:block/fusion_furnace_controller",
       "y": 270
     }
   }
