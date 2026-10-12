@@ -1,0 +1,12 @@
+{
+  "type": "soulforge:casting",
+  "fluid": {
+    "id": "soulforge:molten_obsidian",
+    "amount": 288
+  },
+  "output": {
+    "id": "minecraft:obsidian"
+  },
+  "coolingTime": 200,
+  "basin": true
+}

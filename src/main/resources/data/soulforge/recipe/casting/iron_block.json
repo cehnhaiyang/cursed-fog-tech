@@ -1,0 +1,12 @@
+{
+  "type": "soulforge:casting",
+  "fluid": {
+    "id": "soulforge:molten_iron",
+    "amount": 1296
+  },
+  "output": {
+    "id": "minecraft:iron_block"
+  },
+  "coolingTime": 400,
+  "basin": true
+}

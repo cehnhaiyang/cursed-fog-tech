@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "NNN",
+    "NGN",
+    "NNN"
+  ],
+  "key": {
+    "N": { "item": "minecraft:netherite_ingot" },
+    "G": { "item": "minecraft:glass" }
+  },
+  "result": {
+    "id": "soulforge:netherite_fuel_tank"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "type": "soulforge:melting",
+  "input": {
+    "item": "minecraft:raw_gold"
+  },
+  "output": {
+    "id": "soulforge:molten_gold",
+    "amount": 144
+  },
+  "temperature": 1067,
+  "time": 100
+}

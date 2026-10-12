@@ -1,0 +1,12 @@
+{
+  "type": "soulforge:casting",
+  "fluid": {
+    "id": "soulforge:molten_netherite",
+    "amount": 144
+  },
+  "output": {
+    "id": "minecraft:netherite_ingot"
+  },
+  "coolingTime": 200,
+  "basin": false
+}

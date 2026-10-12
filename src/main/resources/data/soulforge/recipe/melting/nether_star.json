@@ -1,0 +1,12 @@
+{
+  "type": "soulforge:melting",
+  "input": {
+    "item": "minecraft:nether_star"
+  },
+  "output": {
+    "id": "soulforge:molten_nether_star",
+    "amount": 500
+  },
+  "temperature": 2500,
+  "time": 400
+}

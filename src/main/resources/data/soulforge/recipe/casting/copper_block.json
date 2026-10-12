@@ -1,0 +1,12 @@
+{
+  "type": "soulforge:casting",
+  "fluid": {
+    "id": "soulforge:molten_copper",
+    "amount": 1296
+  },
+  "output": {
+    "id": "minecraft:copper_block"
+  },
+  "coolingTime": 400,
+  "basin": true
+}

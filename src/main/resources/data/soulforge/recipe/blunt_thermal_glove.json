@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "PSP",
+    "SGS",
+    "PSP"
+  ],
+  "key": {
+    "P": { "tag": "minecraft:planks" },
+    "G": { "item": "soulforge:glove" },
+    "S": { "item": "minecraft:string" }
+  },
+  "result": {
+    "id": "soulforge:blunt_thermal_glove"
+  }
+}

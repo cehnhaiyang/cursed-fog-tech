@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "TTT",
+    "TIT",
+    "TTT"
+  ],
+  "key": {
+    "T": { "item": "soulforge:trinity_alloy_ingot" },
+    "I": { "item": "soulforge:intermediate_smeltery_controller" }
+  },
+  "result": {
+    "id": "soulforge:advanced_smeltery_controller"
+  }
+}

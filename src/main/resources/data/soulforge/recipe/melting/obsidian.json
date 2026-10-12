@@ -1,0 +1,12 @@
+{
+  "type": "soulforge:melting",
+  "input": {
+    "item": "minecraft:obsidian"
+  },
+  "output": {
+    "id": "soulforge:molten_obsidian",
+    "amount": 288
+  },
+  "temperature": 1700,
+  "time": 200
+}

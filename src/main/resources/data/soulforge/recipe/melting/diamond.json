@@ -1,0 +1,12 @@
+{
+  "type": "soulforge:melting",
+  "input": {
+    "item": "minecraft:diamond"
+  },
+  "output": {
+    "id": "soulforge:molten_diamond",
+    "amount": 144
+  },
+  "temperature": 3500,
+  "time": 250
+}

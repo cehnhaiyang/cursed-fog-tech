@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "north": "soulforge:block/fusion_furnace_controller_front",
+    "south": "soulforge:block/fusion_furnace_controller_front",
+    "east": "soulforge:block/fusion_furnace_controller_side",
+    "west": "soulforge:block/fusion_furnace_controller_side",
+    "up": "soulforge:block/fusion_furnace_controller_top",
+    "down": "soulforge:block/fusion_furnace_controller_side",
+    "particle": "soulforge:block/fusion_furnace_controller_side"
+  }
+}

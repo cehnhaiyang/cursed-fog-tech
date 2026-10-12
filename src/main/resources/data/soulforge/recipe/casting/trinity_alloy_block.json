@@ -1,0 +1,12 @@
+{
+  "type": "soulforge:casting",
+  "fluid": {
+    "id": "soulforge:molten_trinity_alloy",
+    "amount": 1296
+  },
+  "output": {
+    "id": "soulforge:trinity_alloy_block"
+  },
+  "coolingTime": 600,
+  "basin": true
+}

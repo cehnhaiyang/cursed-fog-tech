@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "soulforge:block/casting_table"
+    }
+  }
+}

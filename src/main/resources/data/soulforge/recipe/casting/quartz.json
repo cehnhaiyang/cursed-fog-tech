@@ -1,0 +1,12 @@
+{
+  "type": "soulforge:casting",
+  "fluid": {
+    "id": "soulforge:molten_quartz",
+    "amount": 144
+  },
+  "output": {
+    "id": "minecraft:quartz"
+  },
+  "coolingTime": 60,
+  "basin": false
+}

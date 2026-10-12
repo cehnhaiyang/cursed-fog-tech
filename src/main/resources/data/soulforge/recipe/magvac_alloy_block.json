@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    { "item": "soulforge:magvac_generator" },
+    { "item": "soulforge:trinity_alloy_block" }
+  ],
+  "result": {
+    "id": "soulforge:magvac_alloy_block"
+  }
+}

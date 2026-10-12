@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    { "item": "soulforge:magnetic_coil" },
+    { "item": "soulforge:vacuum_generator" }
+  ],
+  "result": {
+    "id": "soulforge:magvac_generator"
+  }
+}

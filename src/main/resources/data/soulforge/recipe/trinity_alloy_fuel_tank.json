@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "TTT",
+    "TGT",
+    "TTT"
+  ],
+  "key": {
+    "T": { "item": "soulforge:trinity_alloy_ingot" },
+    "G": { "item": "minecraft:glass" }
+  },
+  "result": {
+    "id": "soulforge:trinity_alloy_fuel_tank"
+  }
+}

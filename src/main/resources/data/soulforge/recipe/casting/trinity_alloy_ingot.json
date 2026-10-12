@@ -1,0 +1,12 @@
+{
+  "type": "soulforge:casting",
+  "fluid": {
+    "id": "soulforge:molten_trinity_alloy",
+    "amount": 144
+  },
+  "output": {
+    "id": "soulforge:trinity_alloy_ingot"
+  },
+  "coolingTime": 150,
+  "basin": false
+}

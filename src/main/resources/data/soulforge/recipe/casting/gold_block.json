@@ -1,0 +1,12 @@
+{
+  "type": "soulforge:casting",
+  "fluid": {
+    "id": "soulforge:molten_gold",
+    "amount": 1296
+  },
+  "output": {
+    "id": "minecraft:gold_block"
+  },
+  "coolingTime": 400,
+  "basin": true
+}
