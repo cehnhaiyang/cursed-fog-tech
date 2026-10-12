@@ -1,6 +1,6 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "soulforge:item/netherite_bucket"
+    "layer0": "soulforge:item/plasma_blazing_blood_bucket"
   }
 }

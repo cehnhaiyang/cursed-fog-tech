@@ -6,193 +6,278 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Simple cuboid multiblock scanner. Given a controller position and a facing,
- * scans outward to find a rectangular structure formed by valid wall/floor blocks
- * with an air interior. Tracks interior volume and whether the structure is valid.
+ * 加热结构（冶炼炉/混合炉/聚变炉）的立方体多方块扫描器。
+ *
+ * <p>算法对齐 TiC3 的 {@code MultiblockCuboid}：以控制器朝向的反方向那一格为中心，
+ * 先在水平方向走到墙，校验中心层的空腔与四壁；再逐层向下、向上校验，
+ * 最后要求底部（可选顶部）是一个完整有效的盖面。
+ * 这样"敞口无顶盖"的结构才可能成立——闭盒式校验会把敞口炉判为无效。
  */
 public class MultiblockCuboid {
-    private static final int DEFAULT_MAX_WIDTH = 11;
-    private static final int DEFAULT_MAX_HEIGHT = 32;
+    /** 单层内部水平最大边长。 */
+    public static final int DEFAULT_INNER_LIMIT = 11;
+    /** 结构最大总高度（含底板）。 */
+    public static final int DEFAULT_MAX_HEIGHT = 32;
 
     private final boolean hasFloor;
     private final boolean hasCeiling;
-    private final int maxWidth;
     private final int maxHeight;
+    private final int innerLimit;
 
-    @Nullable
-    private MultiblockResult lastResult;
-
-    public MultiblockCuboid(boolean hasFloor, boolean hasCeiling, int maxWidth, int maxHeight) {
-        this.hasFloor = hasFloor;
-        this.hasCeiling = hasCeiling;
-        this.maxWidth = maxWidth;
-        this.maxHeight = maxHeight;
-    }
+    /** 尚未探测过时的初始结果：不是成功，而是"还没成形"，右键时应据此提示。 */
+    private MultiblockResult lastResult = MultiblockResult.error(null, "multiblock.soulforge.not_formed");
 
     public MultiblockCuboid(boolean hasFloor, boolean hasCeiling) {
-        this(hasFloor, hasCeiling, DEFAULT_MAX_WIDTH, DEFAULT_MAX_HEIGHT);
+        this(hasFloor, hasCeiling, DEFAULT_MAX_HEIGHT, DEFAULT_INNER_LIMIT);
+    }
+
+    public MultiblockCuboid(boolean hasFloor, boolean hasCeiling, int maxHeight, int innerLimit) {
+        this.hasFloor = hasFloor;
+        this.hasCeiling = hasCeiling;
+        this.maxHeight = maxHeight;
+        this.innerLimit = innerLimit;
+    }
+
+    public boolean hasFloor() {
+        return hasFloor;
+    }
+
+    public boolean hasCeiling() {
+        return hasCeiling;
+    }
+
+    public int getMaxHeight() {
+        return maxHeight;
+    }
+
+    public MultiblockResult getLastResult() {
+        return lastResult;
     }
 
     /**
-     * Detects a cuboid multiblock centered behind the controller.
+     * 探测以控制器为中心的多方块结构。
      *
-     * @param world  Level instance
-     * @param center Center position of the interior (one block behind the controller face)
-     * @return Multiblock structure data, or null if invalid
+     * @param world     世界
+     * @param master    控制器位置
+     * @param facing    控制器朝向（其反方向即炉内）
+     * @param validator 方块合法性判定，同时负责收集燃料储罐位置
+     * @return 结构描述，无效时返回 null 并在 {@link #getLastResult()} 中留下原因
      */
     @Nullable
-    public MultiblockStructure detectMultiblock(Level world, BlockPos center) {
-        return detectMultiblock(world, center, (w, p, side) -> !isAirOrInnerBlock(w, p));
-    }
-
-    @Nullable
-    public MultiblockStructure detectMultiblock(Level world, BlockPos center, BlockValidator validator) {
-        // Find horizontal extents from the center
-        int west = measureToEdge(world, center, Direction.WEST, maxWidth);
-
-        int east = measureToEdge(world, center, Direction.EAST, maxWidth);
-        int north = measureToEdge(world, center, Direction.NORTH, maxWidth);
-        int south = measureToEdge(world, center, Direction.SOUTH, maxWidth);
-
-        int innerX = west + east + 1;
-        int innerZ = north + south + 1;
-        if (innerX > maxWidth || innerZ > maxWidth) {
-            lastResult = MultiblockResult.error(center, "multiblock.soulforge.too_large");
-            return null;
+    public MultiblockStructure detectMultiblock(Level world, BlockPos master, Direction facing, BlockValidator validator) {
+        BlockPos center = master.relative(facing.getOpposite());
+        if (!world.hasChunkAt(center) || !isInnerBlock(world, center)) {
+            return fail(MultiblockResult.error(center, "multiblock.soulforge.invalid_inner_block"));
         }
 
-        BlockPos innerMin = center.offset(-west, 0, -north);
-        BlockPos innerMax = center.offset(east, 0, south);
+        // 水平方向走到墙，得到四面墙的位置
+        BlockPos north = walkToWall(world, center, Direction.NORTH);
+        BlockPos south = walkToWall(world, center, Direction.SOUTH);
+        BlockPos west = walkToWall(world, center, Direction.WEST);
+        BlockPos east = walkToWall(world, center, Direction.EAST);
 
-        // Determine vertical extents. If the structure has a floor/ceiling, the shell
-        // extends one block below/above the interior. Otherwise we scan for more air.
-        int down = hasFloor ? 1 : measureVerticalToEdge(world, innerMin, innerMax, Direction.DOWN, maxHeight / 2) + 1;
-        int up = hasCeiling ? 1 : measureVerticalToEdge(world, innerMin, innerMax, Direction.UP, maxHeight / 2) + 1;
+        BlockPos from = new BlockPos(west.getX(), center.getY(), north.getZ());
+        BlockPos to = new BlockPos(east.getX(), center.getY(), south.getZ());
 
-        BlockPos min = innerMin.offset(0, -down, 0);
-        BlockPos max = innerMax.offset(0, up, 0);
-
-        // Validate the full cuboid shell
-        MultiblockResult result = validateShell(world, min, max, validator);
-        if (!result.isSuccess()) {
-            lastResult = result;
-            return null;
+        int innerX = to.getX() - from.getX() - 1;
+        int innerZ = to.getZ() - from.getZ() - 1;
+        if (innerX < 1 || innerZ < 1) {
+            return fail(MultiblockResult.error(center, "multiblock.soulforge.too_small"));
+        }
+        if (innerX > innerLimit || innerZ > innerLimit) {
+            return fail(MultiblockResult.error(center, "multiblock.soulforge.too_large"));
         }
 
+        List<BlockPos> tanks = new ArrayList<>();
+        MultiblockResult layer = detectLayer(world, from, to, validator, tanks);
+        if (!layer.isSuccess()) {
+            return fail(layer);
+        }
+
+        // 向下逐层扫描，直到某层不再是有效的炉壁层
+        int down = 0;
+        while (down + 1 < maxHeight) {
+            BlockPos layerFrom = from.above(-down - 1);
+            BlockPos layerTo = to.above(-down - 1);
+            if (!detectLayer(world, layerFrom, layerTo, validator, tanks).isSuccess()) {
+                break;
+            }
+            down++;
+        }
+        BlockPos belowFrom = from.above(-down - 1);
+        BlockPos belowTo = to.above(-down - 1);
+        int minY;
+        if (hasFloor) {
+            MultiblockResult floor = detectCap(world, belowFrom, belowTo, CuboidSide.FLOOR, validator, tanks);
+            if (!floor.isSuccess()) {
+                return fail(floor);
+            }
+            minY = belowFrom.getY();
+        } else {
+            minY = from.above(-down).getY();
+        }
+
+        // 向上逐层扫描
+        int up = 0;
+        while (down + up + 2 < maxHeight) {
+            BlockPos layerFrom = from.above(up + 1);
+            BlockPos layerTo = to.above(up + 1);
+            if (!detectLayer(world, layerFrom, layerTo, validator, tanks).isSuccess()) {
+                break;
+            }
+            up++;
+        }
+        BlockPos aboveFrom = from.above(up + 1);
+        BlockPos aboveTo = to.above(up + 1);
+        int maxY;
+        if (hasCeiling) {
+            MultiblockResult ceiling = detectCap(world, aboveFrom, aboveTo, CuboidSide.CEILING, validator, tanks);
+            if (!ceiling.isSuccess()) {
+                return fail(ceiling);
+            }
+            maxY = aboveFrom.getY();
+        } else {
+            maxY = from.above(up).getY();
+        }
+
+        // 收集到的储罐位置可能落在最终边界之外（向上扫描失败的那一层），需要剔除
+        BlockPos min = new BlockPos(from.getX(), minY, from.getZ());
+        BlockPos max = new BlockPos(to.getX(), maxY, to.getZ());
+        tanks.removeIf(pos -> pos.getY() < minY || pos.getY() > maxY);
 
         lastResult = MultiblockResult.success();
-        int innerY = Math.max(1, max.getY() - min.getY() - 1);
-        return new MultiblockStructure(min, max, innerX, innerZ, innerY);
-
+        return new MultiblockStructure(min, max, tanks);
     }
 
     /**
-     * Measures how many valid interior (air) blocks exist from pos in direction,
-     * stopping at the first non-air block. Returns the distance to the wall.
+     * 校验单层：内部必须为空，四壁必须是合法炉壁方块。
+     * 储罐方块在墙体上同样算合法，并被记录进 {@code tanks}。
      */
-    private int measureToEdge(Level world, BlockPos pos, Direction direction, int limit) {
-        int distance = 0;
-        BlockPos.MutableBlockPos mutable = pos.mutable();
-        for (int i = 0; i < limit; i++) {
-            mutable.move(direction);
-            if (!isAirOrInnerBlock(world, mutable)) {
-                break;
-            }
-            distance++;
+    private MultiblockResult detectLayer(Level world, BlockPos from, BlockPos to,
+                                         BlockValidator validator, List<BlockPos> tanks) {
+        if (!world.hasChunksAt(from, to)) {
+            return MultiblockResult.error(null, "multiblock.soulforge.not_loaded");
         }
-        return distance;
-    }
 
-    private int measureVerticalToEdge(Level world, BlockPos innerMin, BlockPos innerMax, Direction direction, int limit) {
-        int distance = 0;
-        for (int i = 0; i < limit; i++) {
-            BlockPos layerMin = innerMin.relative(direction, i + 1);
-            BlockPos layerMax = innerMax.relative(direction, i + 1);
-            if (!isLayerAir(world, layerMin, layerMax)) {
-                break;
-            }
-            distance++;
-        }
-        return distance;
-    }
-
-    private boolean isLayerAir(Level world, BlockPos from, BlockPos to) {
         BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
+        int y = from.getY();
+        for (int x = from.getX() + 1; x < to.getX(); x++) {
+            for (int z = from.getZ() + 1; z < to.getZ(); z++) {
+                mutable.set(x, y, z);
+                if (!isInnerBlock(world, mutable)) {
+                    return MultiblockResult.error(mutable.immutable(), "multiblock.soulforge.invalid_inner_block");
+                }
+            }
+        }
+
         for (int x = from.getX(); x <= to.getX(); x++) {
             for (int z = from.getZ(); z <= to.getZ(); z++) {
-                mutable.set(x, from.getY(), z);
-                if (!isAirOrInnerBlock(world, mutable)) {
-                    return false;
+                // 只查四壁，内部已在上面查过
+                boolean onRing = x == from.getX() || x == to.getX() || z == from.getZ() || z == to.getZ();
+                if (!onRing) {
+                    continue;
                 }
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Validates that the outer shell of the cuboid is made of valid blocks.
-     * Delegates block validity to the supplied validator.
-     */
-    public MultiblockResult validateShell(Level world, BlockPos min, BlockPos max, BlockValidator validator) {
-        BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
-
-        for (int x = min.getX(); x <= max.getX(); x++) {
-            for (int y = min.getY(); y <= max.getY(); y++) {
-                for (int z = min.getZ(); z <= max.getZ(); z++) {
-                    boolean isEdgeX = x == min.getX() || x == max.getX();
-                    boolean isEdgeY = y == min.getY() || y == max.getY();
-                    boolean isEdgeZ = z == min.getZ() || z == max.getZ();
-                    if (!isEdgeX && !isEdgeY && !isEdgeZ) {
-                        continue; // interior
-                    }
-
-                    mutable.set(x, y, z);
-                    CuboidSide side = getSide(mutable, min, max);
-                    if (!validator.isValid(world, mutable, side)) {
-                        return MultiblockResult.error(mutable.immutable(), "multiblock.soulforge.invalid_block");
-                    }
+                mutable.set(x, y, z);
+                if (!validator.isValid(world, mutable, CuboidSide.WALL)) {
+                    return MultiblockResult.error(mutable.immutable(), "multiblock.soulforge.invalid_wall_block");
                 }
+                recordTank(world, mutable, validator, tanks);
             }
         }
         return MultiblockResult.success();
     }
 
+    /** 校验底板或顶盖：整面都必须是合法方块（底板通常允许更宽的材料集合）。 */
+    private MultiblockResult detectCap(Level world, BlockPos from, BlockPos to, CuboidSide side,
+                                       BlockValidator validator, List<BlockPos> tanks) {
+        if (!world.hasChunksAt(from, to)) {
+            return MultiblockResult.error(null, "multiblock.soulforge.not_loaded");
+        }
+        BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
+        int y = from.getY();
+        for (int x = from.getX(); x <= to.getX(); x++) {
+            for (int z = from.getZ(); z <= to.getZ(); z++) {
+                mutable.set(x, y, z);
+                if (!validator.isValid(world, mutable, side)) {
+                    return MultiblockResult.error(mutable.immutable(), "multiblock.soulforge.invalid_floor_block");
+                }
+                recordTank(world, mutable, validator, tanks);
+            }
+        }
+        return MultiblockResult.success();
+    }
+
+    private void recordTank(Level world, BlockPos pos, BlockValidator validator, List<BlockPos> tanks) {
+        if (validator.isTank(world.getBlockState(pos)) && !tanks.contains(pos)) {
+            tanks.add(pos.immutable());
+        }
+    }
+
+    /** 从 pos 出发沿 direction 走到第一面墙，最多走 innerLimit + 1 格。 */
+    private BlockPos walkToWall(Level world, BlockPos pos, Direction direction) {
+        BlockPos current = pos;
+        for (int i = 0; i <= innerLimit && world.hasChunkAt(current); i++) {
+            BlockPos next = current.relative(direction);
+            if (!world.hasChunkAt(next) || !isInnerBlock(world, next)) {
+                return next;
+            }
+            current = next;
+        }
+        return current.relative(direction);
+    }
+
     /**
-     * Overload that only checks for non-air shell blocks. Used when no tier-specific validator is supplied.
+     * 判断结构正上方一层能否补成新的炉壁层，用于免去整结构重扫就能判断"能不能往上加盖"。
      */
-    public MultiblockResult validateShell(Level world, BlockPos min, BlockPos max) {
-        return validateShell(world, min, max, (w, p, side) -> !isAirOrInnerBlock(w, p));
+    public boolean canExpand(Level world, MultiblockStructure structure, BlockValidator validator) {
+        BlockPos from = new BlockPos(structure.getMin().getX(), structure.getMax().getY() + 1, structure.getMin().getZ());
+        BlockPos to = new BlockPos(structure.getMax().getX(), structure.getMax().getY() + 1, structure.getMax().getZ());
+        return detectLayer(world, from, to, validator, new ArrayList<>()).isSuccess();
     }
 
-    private CuboidSide getSide(BlockPos pos, BlockPos min, BlockPos max) {
-        if (pos.getY() == min.getY() && hasFloor) {
-            return CuboidSide.FLOOR;
+    /**
+     * 判断某个方块变化是否值得触发一次结构重扫。
+     * 只有"结构外壳被换成了非法方块""结构内部被塞了东西""正上方出现了墙"三种情况才需要，
+     * 否则远处的无关方块变动会不断触发全结构扫描。
+     */
+    public boolean shouldUpdate(Level world, MultiblockStructure structure, BlockPos pos, BlockState state,
+                                BlockValidator validator) {
+        if (structure.withinBounds(pos)) {
+            if (structure.contains(pos)) {
+                CuboidSide side = pos.getY() == structure.getMin().getY() && hasFloor ? CuboidSide.FLOOR : CuboidSide.WALL;
+                return !validator.isValid(world, pos, side);
+            }
+            return structure.isInside(pos) && !state.isAir();
         }
-        if (pos.getY() == max.getY() && hasCeiling) {
-            return CuboidSide.CEILING;
-        }
-        return CuboidSide.WALL;
+        return structure.isDirectlyAbove(pos);
     }
 
-    /** True if the position is air or otherwise allowed inside the multiblock. */
-    public boolean isAirOrInnerBlock(Level world, BlockPos pos) {
-        BlockState state = world.getBlockState(pos);
-        return state.isAir();
+    public boolean isInnerBlock(Level world, BlockPos pos) {
+        return world.getBlockState(pos).isAir();
     }
 
     @Nullable
-    public MultiblockResult getLastResult() {
-        return lastResult;
+    private MultiblockStructure fail(MultiblockResult result) {
+        this.lastResult = result;
+        return null;
     }
 
     public enum CuboidSide {
-        FLOOR, WALL, CEILING
+        FLOOR,
+        WALL,
+        CEILING
     }
 
-    @FunctionalInterface
+    /** 方块合法性判定。{@link #isTank} 用于让扫描过程顺带收集燃料储罐位置。 */
     public interface BlockValidator {
         boolean isValid(Level world, BlockPos pos, CuboidSide side);
+
+        default boolean isTank(BlockState state) {
+            return false;
+        }
     }
 }

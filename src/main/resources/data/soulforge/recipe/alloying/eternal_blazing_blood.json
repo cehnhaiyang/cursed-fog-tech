@@ -1,0 +1,14 @@
+{
+  "type": "soulforge:alloying",
+  "inputs": [
+    "soulforge:plasma_blazing_blood",
+    "soulforge:molten_nether_heart"
+  ],
+  "amounts": [500, 500],
+  "output": {
+    "id": "soulforge:eternal_blazing_blood",
+    "amount": 1000
+  },
+  "temperature": 10000,
+  "color": 16777215
+}

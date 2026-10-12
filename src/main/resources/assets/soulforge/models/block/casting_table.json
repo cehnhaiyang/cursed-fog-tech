@@ -1,11 +1,11 @@
 {
   "parent": "block/cube",
   "textures": {
-    "up": "soulforge:block/casting_table_top",
     "north": "soulforge:block/casting_table_side",
     "south": "soulforge:block/casting_table_side",
     "east": "soulforge:block/casting_table_side",
     "west": "soulforge:block/casting_table_side",
+    "up": "soulforge:block/casting_table_top",
     "down": "soulforge:block/casting_table_bottom",
     "particle": "soulforge:block/casting_table_side"
   }

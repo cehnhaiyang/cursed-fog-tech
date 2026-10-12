@@ -1,0 +1,15 @@
+{
+  "type": "soulforge:alloying",
+  "inputs": [
+    "soulforge:molten_trinity_alloy",
+    "soulforge:molten_ender_pearl",
+    "soulforge:molten_nether_star"
+  ],
+  "amounts": [288, 144, 144],
+  "output": {
+    "id": "soulforge:molten_singularity",
+    "amount": 576
+  },
+  "temperature": 10000,
+  "color": 1118481
+}

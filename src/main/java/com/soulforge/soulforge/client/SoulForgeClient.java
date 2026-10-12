@@ -16,13 +16,15 @@ import net.neoforged.neoforge.client.fluid.FluidTintSources;
 
 /**
  * 客户端事件处理器。
- * 注册菜单对应的 Screen 界面，以及流体的渲染模型与染色。
+ * 注册菜单对应的 Screen 界面，以及流体的渲染模型。
  */
 @EventBusSubscriber(modid = SoulForge.MOD_ID, value = Dist.CLIENT)
 public class SoulForgeClient {
-    /** 所有流体共用水的静止/流动贴图，靠染色区分。 */
-    private static final Material WATER_STILL = new Material(Identifier.withDefaultNamespace("block/water_still"));
-    private static final Material WATER_FLOWING = new Material(Identifier.withDefaultNamespace("block/water_flow"));
+    /**
+     * 每种流体有自己的静流/流动贴图，颜色已经画进贴图里，所以染色用纯白（乘 1 等于不染色）。
+     * 若这里再按 tintColor 染色，贴图会被二次上色。
+     */
+    private static final int NO_TINT = 0xFFFFFFFF;
 
     @SubscribeEvent
     public static void onRegisterMenuScreens(RegisterMenuScreensEvent event) {
@@ -41,9 +43,12 @@ public class SoulForgeClient {
     @SubscribeEvent
     public static void onRegisterFluidModels(RegisterFluidModelsEvent event) {
         for (SoulForgeFluids.FluidSet fluid : SoulForgeFluids.ALL) {
+            String path = "block/fluid/" + fluid.name();
             FluidModel.Unbaked model = new FluidModel.Unbaked(
-                    WATER_STILL, WATER_FLOWING, null,
-                    FluidTintSources.constant(fluid.tintColor()));
+                    new Material(Identifier.fromNamespaceAndPath(SoulForge.MOD_ID, path + "_still")),
+                    new Material(Identifier.fromNamespaceAndPath(SoulForge.MOD_ID, path + "_flowing")),
+                    null,
+                    FluidTintSources.constant(NO_TINT));
             event.register(model, fluid.still(), fluid.flowing());
         }
     }

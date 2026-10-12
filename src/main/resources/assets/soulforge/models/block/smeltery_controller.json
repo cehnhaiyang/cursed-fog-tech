@@ -7,6 +7,6 @@
     "west": "soulforge:block/smeltery_controller_side",
     "up": "soulforge:block/smeltery_controller_top",
     "down": "soulforge:block/smeltery_controller_side",
-    "particle": "soulforge:block/smeltery_controller_side"
+    "particle": "soulforge:block/smeltery_controller_front"
   }
 }

@@ -5,7 +5,7 @@ import com.soulforge.soulforge.SoulForgeConfig;
 import com.soulforge.soulforge.item.SoulForgeItems;
 import com.soulforge.soulforge.item.SuperheatedResistantBucketItem;
 import com.soulforge.soulforge.item.SuperheatedResistantTankItem;
-import com.soulforge.soulforge.smeltery.fuel.FuelTemperatureRegistry;
+import com.soulforge.soulforge.smeltery.fuel.FuelRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -130,7 +130,7 @@ public class ContainerSafetyHandler {
     /** Gets the temperature of the fluid held in the item's first tank. */
     private static int getHeldFluidTemperature(ItemStack stack) {
         FluidStack inTank = getHeldFluid(stack);
-        return inTank.isEmpty() ? 0 : FuelTemperatureRegistry.getTemperature(inTank);
+        return inTank.isEmpty() ? 0 : FuelRegistry.getTemperature(inTank);
     }
 
     /** 取物品的流体能力；无能力时返回 null。 */

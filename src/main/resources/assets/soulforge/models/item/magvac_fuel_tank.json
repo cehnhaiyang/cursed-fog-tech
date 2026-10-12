@@ -1,3 +1,6 @@
 {
-  "parent": "soulforge:block/magvac_fuel_tank"
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "soulforge:item/magvac_fuel_tank"
+  }
 }

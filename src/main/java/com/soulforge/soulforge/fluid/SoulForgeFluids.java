@@ -87,7 +87,7 @@ public class SoulForgeFluids {
                 props -> new LiquidBlock(reg.still.get(), props),
                 () -> BlockBehaviour.Properties.ofFullCopy(Blocks.LAVA).mapColor(MapColor.COLOR_RED).noLootTable());
 
-        return new FluidSet(name, tintColor, type, reg.still, reg.flowing, reg.bucket, reg.block);
+        return new FluidSet(name, type, reg.still, reg.flowing, reg.bucket, reg.block);
     }
 
     private static BaseFlowingFluid.Properties makeProperties(DeferredHolder<FluidType, FluidType> type, FluidReg reg) {
@@ -104,7 +104,6 @@ public class SoulForgeFluids {
     }
 
     public record FluidSet(String name,
-                           int tintColor,
                            DeferredHolder<FluidType, FluidType> type,
                            DeferredHolder<Fluid, BaseFlowingFluid.Source> still,
                            DeferredHolder<Fluid, BaseFlowingFluid.Flowing> flowing,

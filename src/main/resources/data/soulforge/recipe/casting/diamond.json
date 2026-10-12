@@ -7,6 +7,7 @@
   "output": {
     "id": "minecraft:diamond"
   },
+  "cast": "soulforge:gem_cast",
   "coolingTime": 150,
   "basin": false
 }

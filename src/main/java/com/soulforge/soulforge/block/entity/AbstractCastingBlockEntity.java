@@ -4,7 +4,11 @@ import com.soulforge.soulforge.recipe.SoulForgeRecipeTypes;
 import com.soulforge.soulforge.recipe.casting.CastingRecipe;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -29,9 +33,12 @@ import java.util.List;
 
 /**
  * 铸造方块实体基类（参照 TiC3 的 CastingBlockEntity）。
- * 使用 WorldlyContainer 提供 INPUT(0)/OUTPUT(1) 双槽位。
- * 右键交互：先尝试流体传输，再尝试物品交换。
- * 流体灌入时自动查找铸造配方，罐容量动态设为配方所需量。
+ *
+ * <p>流程：先由玩家把铸模（台）或什么都不放（盆）准备好，再灌入流体；
+ * 流体一旦达到配方所需量就开始冷却计时，计时结束产出物品并抽走流体。
+ *
+ * <p>铸模**不消耗**——它留在台上重复使用。这是铸造台与"一次性模具"的分野，
+ * 也是玩家能用同一个锭模浇出无数锭的前提。
  */
 public abstract class AbstractCastingBlockEntity extends BlockEntity implements WorldlyContainer {
     public static final int INPUT = 0;
@@ -44,18 +51,13 @@ public abstract class AbstractCastingBlockEntity extends BlockEntity implements 
     private static final String TAG_INPUT = "input";
     private static final String TAG_OUTPUT = "output";
 
-    // 铸造流体处理器（动态容量）
     private final CastingFluidHandler tank;
-    // 当前铸造配方
     @Nullable
     private CastingRecipe currentRecipe;
-    // 冷却进度
-    private int timer = 0;
-    // 冷却所需时间（-1 表示未开始）
+    private int timer;
+    /** 冷却所需时间；-1 表示尚未开始冷却。 */
     private int coolingTime = -1;
-    // 是否为铸造盆
     private final boolean isBasin;
-    // 物品槽
     private final ItemStack[] items = new ItemStack[SLOTS];
 
     protected AbstractCastingBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state, boolean isBasin) {
@@ -86,123 +88,114 @@ public abstract class AbstractCastingBlockEntity extends BlockEntity implements 
         return coolingTime;
     }
 
+    /** 冷却进度 0..1，供渲染与界面使用。 */
+    public float getCoolingProgress() {
+        if (coolingTime <= 0) {
+            return 0.0f;
+        }
+        return Math.min(1.0f, (float) timer / coolingTime);
+    }
+
     public boolean isBasin() {
         return isBasin;
     }
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, AbstractCastingBlockEntity entity) {
-        if (level.isClientSide()) {
-            return;
+        if (!level.isClientSide()) {
+            entity.serverTick(level);
         }
-        entity.serverTick(level);
     }
 
     private void serverTick(Level level) {
-        // 没有配方时不处理
-        if (currentRecipe == null) {
+        if (currentRecipe == null || coolingTime < 0) {
             return;
         }
-        // 罐已满时开始冷却
-        if (coolingTime >= 0) {
-            timer++;
-            if (timer >= coolingTime) {
-                // 冷却完成，产出
-                FluidStack currentFluid = tank.getFluid();
-                // 重新验证配方
-                if (!FluidStack.isSameFluid(currentFluid, currentRecipe.getFluidTemplate())
-                        || currentRecipe.getFluidAmount() > currentFluid.getAmount()) {
-                    currentRecipe = findCastingRecipe(level);
-                    if (currentRecipe == null) {
-                        timer = 0;
-                        return;
-                    }
-                }
-                // 产出物品
-                ItemStack output = currentRecipe.getOutput();
-                boolean consumed = true; // 简化：铸模总是被消耗
-                if (!items[OUTPUT].isEmpty()) {
-                    // 输出槽有东西，放到输入槽
-                    items[INPUT] = output;
-                } else {
-                    if (consumed) {
-                        items[INPUT] = ItemStack.EMPTY;
-                    }
-                    items[OUTPUT] = output;
-                }
-                // 消耗流体
-                tank.drain(currentRecipe.getFluidAmount(), false);
-                level.playSound(null, getBlockPos(), SoundEvents.LAVA_EXTINGUISH, SoundSource.BLOCKS, 0.5f, 4f);
-                reset();
-                setChanged();
+        timer++;
+        if (timer < coolingTime) {
+            return;
+        }
+
+        // 冷却期间玩家可能把流体抽走，产出前必须重新确认配方仍然成立
+        FluidStack currentFluid = tank.getFluid();
+        if (!FluidStack.isSameFluid(currentFluid, currentRecipe.getFluidTemplate())
+                || currentRecipe.getFluidAmount() > currentFluid.getAmount()) {
+            currentRecipe = findCastingRecipe(level);
+            if (currentRecipe == null) {
+                timer = 0;
+                coolingTime = -1;
+                return;
             }
         }
+
+        // 输出槽被占时不能产出，否则会覆盖玩家已放好的物品
+        if (!items[OUTPUT].isEmpty()) {
+            timer = Math.max(0, coolingTime - 1);
+            return;
+        }
+
+        items[OUTPUT] = currentRecipe.getOutput();
+        // 只抽走配方所需的流体，铸模与剩余流体都留在原处
+        tank.drain(currentRecipe.getFluidAmount(), false);
+        level.playSound(null, getBlockPos(), SoundEvents.LAVA_EXTINGUISH, SoundSource.BLOCKS, 0.5f, 4f);
+        timer = 0;
+        coolingTime = -1;
+        currentRecipe = null;
+        setChanged();
     }
 
     /**
-     * 右键交互逻辑（参照 TiC3 的 interact 方法）。
-     * 1. 先尝试流体传输（桶装/桶倒）
-     * 2. 如果没有流体交互且罐为空，进行物品交换
+     * 右键交互：先尝试流体传输（桶装/桶倒），没有流体交互且罐为空时再交换物品。
      */
     public void interact(Player player, InteractionHand hand) {
         if (level == null || level.isClientSide() || (coolingTime >= 0 && timer > 0)) {
             return;
         }
 
-        // 先尝试流体交互
         boolean fluidInteracted = FluidUtil.interactWithFluidHandler(player, hand, level, worldPosition, null, null);
         if (fluidInteracted || !tank.isEmpty()) {
             return;
         }
 
-        // 流体交互失败且罐为空：进行物品交换
         ItemStack held = player.getItemInHand(hand);
         ItemStack input = items[INPUT];
         ItemStack output = items[OUTPUT];
 
         if (input.isEmpty() && output.isEmpty()) {
-            // 两个槽都空：放入手中物品到输入槽
             if (!held.isEmpty()) {
                 ItemStack stack = held.split(1);
                 player.setItemInHand(hand, held.isEmpty() ? ItemStack.EMPTY : held);
                 items[INPUT] = stack;
                 setChanged();
             }
-        } else {
-            // 有物品：取出（优先输出槽）
-            int slot = output.isEmpty() ? INPUT : OUTPUT;
-            ItemStack stack = items[slot];
-            if (!player.getInventory().add(stack)) {
-                player.drop(stack, false, net.minecraft.util.Prediction.SERVER_ONLY);
-            }
-            items[slot] = ItemStack.EMPTY;
-            player.setItemInHand(hand, held);
-            level.playSound(null, getBlockPos(), SoundEvents.ITEM_PICKUP, SoundSource.BLOCKS, 0.2f, 1.0f);
-            setChanged();
+            return;
         }
+
+        // 先取产物；产物空了再取模具
+        int slot = output.isEmpty() ? INPUT : OUTPUT;
+        ItemStack stack = items[slot];
+        if (!player.getInventory().add(stack)) {
+            player.drop(stack, false, net.minecraft.util.Prediction.SERVER_ONLY);
+        }
+        items[slot] = ItemStack.EMPTY;
+        level.playSound(null, getBlockPos(), SoundEvents.ITEM_PICKUP, SoundSource.BLOCKS, 0.2f, 1.0f);
+        setChanged();
     }
 
     /**
-     * 流体灌入时调用，查找匹配的铸造配方。
-     * @return 配方所需流体量（用于设置罐容量），0 表示无匹配
+     * 流体灌入时查找匹配的铸造配方。
+     *
+     * @return 配方所需流体量（用于设定罐容量），0 表示无匹配
      */
     public int initNewCasting(FluidStack fluid, boolean execute) {
-        if (this.currentRecipe != null) {
+        if (this.currentRecipe != null || level == null) {
             return 0;
         }
-        if (level == null) {
-            return 0;
-        }
-
-        boolean hasInput = !items[INPUT].isEmpty();
-        boolean hasOutput = !items[OUTPUT].isEmpty();
-
-        // 输出槽有物品时不接受新铸造
-        if (hasInput && hasOutput) {
+        // 输出槽被占时不再接受新的浇筑，否则产物无处安放
+        if (!items[OUTPUT].isEmpty()) {
             return 0;
         }
 
-        // 查找匹配配方
-        CastingRecipe recipe = findCastingRecipe(level, fluid, hasInput ? items[INPUT] : ItemStack.EMPTY);
+        CastingRecipe recipe = findCastingRecipe(level, fluid, items[INPUT]);
         if (recipe != null) {
             if (execute) {
                 this.currentRecipe = recipe;
@@ -212,9 +205,6 @@ public abstract class AbstractCastingBlockEntity extends BlockEntity implements 
         return 0;
     }
 
-    /**
-     * 查找匹配当前流体和输入物品的铸造配方。
-     */
     @Nullable
     private CastingRecipe findCastingRecipe(Level level, FluidStack fluid, ItemStack cast) {
         if (!(level instanceof ServerLevel serverLevel)) {
@@ -225,15 +215,12 @@ public abstract class AbstractCastingBlockEntity extends BlockEntity implements 
                 .toList();
         for (RecipeHolder<CastingRecipe> holder : recipes) {
             CastingRecipe recipe = holder.value();
-            // 类型必须匹配（台面 vs 盆）
             if (recipe.isBasin() != isBasin) {
                 continue;
             }
-            // 流体必须匹配
             if (!FluidStack.isSameFluid(fluid, recipe.getFluidTemplate())) {
                 continue;
             }
-            // 铸模必须匹配（无铸模配方或铸模测试通过）
             if (Ingredient.testOptionalIngredient(recipe.getCast(), cast)) {
                 return recipe;
             }
@@ -246,7 +233,7 @@ public abstract class AbstractCastingBlockEntity extends BlockEntity implements 
         return findCastingRecipe(level, tank.getFluid(), items[INPUT]);
     }
 
-    /** 罐内容变化时调用，启动冷却计时 */
+    /** 罐内容变化时调用，罐满则启动冷却计时。 */
     public void onContentsChanged() {
         FluidStack fluidStack = tank.getFluid();
         if (!fluidStack.isEmpty() && fluidStack.getAmount() >= tank.getCapacity() && currentRecipe != null) {
@@ -257,12 +244,35 @@ public abstract class AbstractCastingBlockEntity extends BlockEntity implements 
         setChanged();
     }
 
-    /** 重置铸造状态到初始空状态 */
+    /** 重置铸造状态到初始空状态。 */
     public void reset() {
         timer = 0;
         currentRecipe = null;
         coolingTime = -1;
         tank.reset();
+    }
+
+    /* 客户端同步：渲染液位与冷却进度都需要这些数据 */
+
+    @Override
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        CompoundTag tag = new CompoundTag();
+        tag.putInt("fluid_amount", tank.getFluid().getAmount());
+        tag.putInt("fluid_capacity", tank.getCapacity());
+        if (!tank.getFluid().isEmpty()) {
+            tag.putString("fluid_id", net.minecraft.core.registries.BuiltInRegistries.FLUID
+                    .getKey(tank.getFluid().getFluid()).toString());
+        }
+        tag.putInt("timer", timer);
+        tag.putInt("cooling_time", coolingTime);
+        tag.putBoolean("basin", isBasin);
+        return tag;
+    }
+
+    @Nullable
+    @Override
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
     }
 
     /* WorldlyContainer 实现 */
@@ -325,10 +335,7 @@ public abstract class AbstractCastingBlockEntity extends BlockEntity implements 
 
     @Override
     public boolean stillValid(Player player) {
-        if (level == null) {
-            return false;
-        }
-        return level.getBlockEntity(worldPosition) == this;
+        return level != null && level.getBlockEntity(worldPosition) == this;
     }
 
     @Override
@@ -337,7 +344,7 @@ public abstract class AbstractCastingBlockEntity extends BlockEntity implements 
         items[OUTPUT] = ItemStack.EMPTY;
     }
 
-    /* NBT */
+    /* 存档 */
 
     @Override
     public void loadAdditional(ValueInput input) {

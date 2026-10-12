@@ -1,0 +1,14 @@
+{
+  "type": "soulforge:alloying",
+  "inputs": [
+    "soulforge:ionized_blazing_blood",
+    "soulforge:molten_diamond"
+  ],
+  "amounts": [800, 200],
+  "output": {
+    "id": "soulforge:plasma_blazing_blood",
+    "amount": 1000
+  },
+  "temperature": 5000,
+  "color": 65535
+}

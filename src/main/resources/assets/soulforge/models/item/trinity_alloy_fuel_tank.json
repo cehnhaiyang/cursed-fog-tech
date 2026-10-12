@@ -1,3 +1,6 @@
 {
-  "parent": "soulforge:block/trinity_alloy_fuel_tank"
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "soulforge:item/trinity_alloy_fuel_tank"
+  }
 }

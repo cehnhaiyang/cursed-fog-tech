@@ -7,6 +7,7 @@
   "output": {
     "id": "minecraft:iron_ingot"
   },
+  "cast": "soulforge:ingot_cast",
   "coolingTime": 80,
   "basin": false
 }

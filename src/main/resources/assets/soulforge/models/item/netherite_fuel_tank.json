@@ -1,3 +1,6 @@
 {
-  "parent": "soulforge:block/netherite_fuel_tank"
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "soulforge:item/netherite_fuel_tank"
+  }
 }

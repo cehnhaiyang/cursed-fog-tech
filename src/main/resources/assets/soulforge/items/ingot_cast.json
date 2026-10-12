@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "soulforge:item/ingot_cast"
+  }
+}

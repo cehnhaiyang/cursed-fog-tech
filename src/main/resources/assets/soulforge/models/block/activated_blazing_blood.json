@@ -1,4 +1,6 @@
 {
   "parent": "block/water",
-  "render_type": "translucent"
+  "textures": {
+    "particle": "soulforge:block/fluid/activated_blazing_blood_still"
+  }
 }

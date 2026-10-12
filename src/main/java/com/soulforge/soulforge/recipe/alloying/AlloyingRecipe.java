@@ -36,42 +36,53 @@ import java.util.List;
 public class AlloyingRecipe implements Recipe<RecipeInput> {
     public static final MapCodec<AlloyingRecipe> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
             FluidIngredient.CODEC.listOf().fieldOf("inputs").forGetter(AlloyingRecipe::getInputs),
-            Codec.INT.listOf().optionalFieldOf("ratios", List.of()).forGetter(AlloyingRecipe::getRatios),
+            Codec.INT.listOf().optionalFieldOf("amounts", List.of()).forGetter(AlloyingRecipe::getAmounts),
             FluidStackTemplate.CODEC.fieldOf("output").forGetter(AlloyingRecipe::getOutputTemplate),
             Codec.STRING.optionalFieldOf("customName", "").forGetter(AlloyingRecipe::getCustomName),
-            Codec.INT.optionalFieldOf("color", 0).forGetter(AlloyingRecipe::getColor)
-    ).apply(instance, AlloyingRecipe::new));
+            Codec.INT.optionalFieldOf("color", 0).forGetter(AlloyingRecipe::getColor),
+            Codec.INT.optionalFieldOf("temperature", 1000).forGetter(AlloyingRecipe::getTemperature))
+            .apply(instance, AlloyingRecipe::new));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, AlloyingRecipe> STREAM_CODEC = StreamCodec.composite(
             FluidIngredient.STREAM_CODEC.apply(ByteBufCodecs.list()), AlloyingRecipe::getInputs,
-            ByteBufCodecs.INT.apply(ByteBufCodecs.list()), AlloyingRecipe::getRatios,
+            ByteBufCodecs.INT.apply(ByteBufCodecs.list()), AlloyingRecipe::getAmounts,
             FluidStackTemplate.STREAM_CODEC, AlloyingRecipe::getOutputTemplate,
             ByteBufCodecs.STRING_UTF8, AlloyingRecipe::getCustomName,
             ByteBufCodecs.INT, AlloyingRecipe::getColor,
-            AlloyingRecipe::new
-    );
+            ByteBufCodecs.INT, AlloyingRecipe::getTemperature,
+            AlloyingRecipe::new);
 
     public static final RecipeSerializer<AlloyingRecipe> SERIALIZER = new RecipeSerializer<>(CODEC, STREAM_CODEC);
 
     private final List<FluidIngredient> inputs;
-    private final List<Integer> ratios;
+    private final List<Integer> amounts;
     private final FluidStackTemplate output;
     private final String customName;
     private final int color;
+    private final int temperature;
 
-    public AlloyingRecipe(List<FluidIngredient> inputs, List<Integer> ratios, FluidStackTemplate output,
-                          String customName, int color) {
+    public AlloyingRecipe(List<FluidIngredient> inputs, List<Integer> amounts, FluidStackTemplate output,
+            String customName, int color, int temperature) {
         this.inputs = inputs != null ? inputs : List.of();
-        this.ratios = ratios != null && !ratios.isEmpty() ? ratios : defaultRatios(this.inputs.size());
+        this.amounts = amounts != null && !amounts.isEmpty() ? amounts : defaultAmounts(this.inputs.size(), output);
         this.output = output;
         this.customName = customName != null ? customName : "";
         this.color = color;
+        this.temperature = temperature;
     }
 
-    private static List<Integer> defaultRatios(int size) {
-        List<Integer> list = new ArrayList<>(Math.max(size, 0));
-        for (int i = 0; i < size; i++) {
-            list.add(1);
+    /**
+     * 未显式给出用量时，把产物总量在输入之间均分。
+     * 以产物量为基准是因为它是配方里唯一必然存在、且与用量同量纲的数值。
+     */
+    private static List<Integer> defaultAmounts(int inputCount, FluidStackTemplate output) {
+        if (inputCount <= 0 || output == null) {
+            return List.of();
+        }
+        int each = Math.max(1, output.amount() / inputCount);
+        List<Integer> list = new ArrayList<>(inputCount);
+        for (int i = 0; i < inputCount; i++) {
+            list.add(each);
         }
         return list;
     }
@@ -80,8 +91,9 @@ public class AlloyingRecipe implements Recipe<RecipeInput> {
         return inputs;
     }
 
-    public List<Integer> getRatios() {
-        return ratios;
+    /** 各输入组分的用量（mB），与 {@link #getInputs()} 一一对应。 */
+    public List<Integer> getAmounts() {
+        return amounts;
     }
 
     public FluidStackTemplate getOutputTemplate() {
@@ -101,27 +113,33 @@ public class AlloyingRecipe implements Recipe<RecipeInput> {
         return color;
     }
 
+    /** 执行本配方所需的燃料温度（摄氏度）。 */
+    public int getTemperature() {
+        return temperature;
+    }
+
     /**
-     * Builds the resulting alloy mixture from drained input fluids. If an input
-     * already carries alloy data, its components are merged weighted by ratio;
-     * otherwise the fluid is mapped to a material by stripping the {@code molten_}
-     * prefix from its registry name.
+     * 根据实际抽出的输入流体构建合金成分表。
+     *
+     * <p>
+     * 成分占比按**实际抽出的 mB 量**计算，而不是配方里写的配比数字——
+     * 只有用量才是守恒量。若输入本身已带合金成分（例如用合金锭回炉），
+     * 则按用量把它的成分表整体缩放后合并，这样多级合金的成分能正确传递。
      */
     public FluidStack assembleMixture(List<FluidStack> drainedInputs) {
         AlloyMixture mixture = new AlloyMixture();
-        for (int i = 0; i < drainedInputs.size() && i < inputs.size(); i++) {
-            FluidStack input = drainedInputs.get(i);
+        for (FluidStack input : drainedInputs) {
             if (input.isEmpty()) {
                 continue;
             }
-            int ratio = i < ratios.size() ? ratios.get(i) : 1;
+            float weight = input.getAmount();
             AlloyMixture inputMixture = AlloyData.getMixture(input);
             if (inputMixture != null && !inputMixture.getComponents().isEmpty()) {
-                mixture.merge(inputMixture, ratio);
+                // 输入自带成分表：其内部占比已归一，直接按用量加权合并
+                mixture.merge(inputMixture, weight);
             } else {
                 Identifier fluidId = BuiltInRegistries.FLUID.getKey(input.getFluid());
-                Identifier materialId = mapFluidToMaterial(fluidId);
-                mixture.addComponent(new AlloyComponent(materialId, ratio));
+                mixture.addComponent(new AlloyComponent(mapFluidToMaterial(fluidId), weight));
             }
         }
         mixture.setCustomName(customName);

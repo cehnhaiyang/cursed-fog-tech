@@ -3,12 +3,16 @@ package com.soulforge.soulforge.block;
 import com.soulforge.soulforge.block.entity.SmelteryControllerBlockEntity;
 import com.soulforge.soulforge.block.entity.SoulForgeBlockEntityTypes;
 import com.soulforge.soulforge.smeltery.SmelteryTier;
+import com.soulforge.soulforge.smeltery.multiblock.MultiblockResult;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -23,6 +27,7 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.redstone.Orientation;
 import net.minecraft.world.phys.BlockHitResult;
+import net.neoforged.neoforge.transfer.fluid.FluidUtil;
 
 import javax.annotation.Nullable;
 
@@ -88,15 +93,50 @@ public class SmelteryControllerBlock extends HorizontalDirectionalBlock implemen
         return expectedType == actualType ? (BlockEntityTicker<A>) ticker : null;
     }
 
+    /**
+     * 空手右键：结构成形才开界面，否则把失败原因作为动作栏提示给玩家。
+     * 未成形时开界面毫无意义——界面里的槽位与罐体都还不存在。
+     */
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer) {
-            if (level.getBlockEntity(pos) instanceof SmelteryControllerBlockEntity controller) {
-                // 打开冶炼炉控制器 GUI，传递 BlockPos 给客户端
-                serverPlayer.openMenu(controller, buf -> buf.writeBlockPos(pos));
-            }
+        if (level.isClientSide() || !(player instanceof ServerPlayer serverPlayer)) {
+            return InteractionResult.SUCCESS;
         }
+        if (!(level.getBlockEntity(pos) instanceof SmelteryControllerBlockEntity controller)) {
+            return InteractionResult.PASS;
+        }
+        if (!state.getValue(IN_STRUCTURE)) {
+            displayStructureError(serverPlayer, controller);
+            return InteractionResult.SUCCESS;
+        }
+        // 槽位数随炉体大小变化，放进打开包让客户端与服务端用同一个数建槽位
+        serverPlayer.openMenu(controller,
+                buf -> com.soulforge.soulforge.menu.ControllerMenu.writeOpenData(
+                        buf, pos, controller.getSlotCount()));
         return InteractionResult.SUCCESS;
+    }
+
+    /** 把最近一次结构探测的失败原因显示在动作栏上。 */
+    private void displayStructureError(ServerPlayer player, SmelteryControllerBlockEntity controller) {
+        MultiblockResult result = controller.getStructureResult();
+        Component message = result != null && !result.isSuccess()
+                ? result.getMessage()
+                : Component.translatable("multiblock.soulforge.not_formed");
+        player.sendSystemMessage(message, true);
+    }
+
+    /**
+     * 手持流体容器右键控制器时优先做流体交换：把炉内熔融金属装进桶，或把桶里的燃料倒进去。
+     * 只有流体交互没发生时（例如空手或拿着非容器）才落到 {@link #useWithoutItem} 开界面。
+     */
+    @Override
+    protected InteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
+                                          Player player, InteractionHand hand, BlockHitResult hit) {
+        if (level.getBlockEntity(pos) instanceof SmelteryControllerBlockEntity controller
+                && FluidUtil.interactWithFluidHandler(player, hand, level, pos, hit.getDirection(), null)) {
+            return InteractionResult.SUCCESS;
+        }
+        return super.useItemOn(stack, state, level, pos, player, hand, hit);
     }
 
     @Override
@@ -110,7 +150,7 @@ public class SmelteryControllerBlock extends HorizontalDirectionalBlock implemen
     @Override
     protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean isMoving) {
         if (level.getBlockEntity(pos) instanceof SmelteryControllerBlockEntity controller) {
-            controller.setRemoved();
+            controller.invalidateStructure();
         }
         super.affectNeighborsAfterRemoval(state, level, pos, isMoving);
     }

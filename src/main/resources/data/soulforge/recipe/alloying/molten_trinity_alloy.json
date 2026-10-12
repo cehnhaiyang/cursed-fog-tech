@@ -1,0 +1,15 @@
+{
+  "type": "soulforge:alloying",
+  "inputs": [
+    "soulforge:molten_netherite",
+    "soulforge:molten_diamond",
+    "soulforge:molten_quartz"
+  ],
+  "amounts": [144, 144, 144],
+  "output": {
+    "id": "soulforge:molten_trinity_alloy",
+    "amount": 432
+  },
+  "temperature": 3500,
+  "color": 8960746
+}

@@ -5,7 +5,7 @@
       "y": 0
     },
     "facing=north,in_structure=false,active=true": {
-      "model": "soulforge:block/intermediate_smeltery_controller",
+      "model": "soulforge:block/intermediate_smeltery_controller_active",
       "y": 0
     },
     "facing=north,in_structure=true,active=false": {
@@ -13,31 +13,15 @@
       "y": 0
     },
     "facing=north,in_structure=true,active=true": {
-      "model": "soulforge:block/intermediate_smeltery_controller",
+      "model": "soulforge:block/intermediate_smeltery_controller_active",
       "y": 0
-    },
-    "facing=south,in_structure=false,active=false": {
-      "model": "soulforge:block/intermediate_smeltery_controller",
-      "y": 180
-    },
-    "facing=south,in_structure=false,active=true": {
-      "model": "soulforge:block/intermediate_smeltery_controller",
-      "y": 180
-    },
-    "facing=south,in_structure=true,active=false": {
-      "model": "soulforge:block/intermediate_smeltery_controller",
-      "y": 180
-    },
-    "facing=south,in_structure=true,active=true": {
-      "model": "soulforge:block/intermediate_smeltery_controller",
-      "y": 180
     },
     "facing=east,in_structure=false,active=false": {
       "model": "soulforge:block/intermediate_smeltery_controller",
       "y": 90
     },
     "facing=east,in_structure=false,active=true": {
-      "model": "soulforge:block/intermediate_smeltery_controller",
+      "model": "soulforge:block/intermediate_smeltery_controller_active",
       "y": 90
     },
     "facing=east,in_structure=true,active=false": {
@@ -45,15 +29,31 @@
       "y": 90
     },
     "facing=east,in_structure=true,active=true": {
-      "model": "soulforge:block/intermediate_smeltery_controller",
+      "model": "soulforge:block/intermediate_smeltery_controller_active",
       "y": 90
+    },
+    "facing=south,in_structure=false,active=false": {
+      "model": "soulforge:block/intermediate_smeltery_controller",
+      "y": 180
+    },
+    "facing=south,in_structure=false,active=true": {
+      "model": "soulforge:block/intermediate_smeltery_controller_active",
+      "y": 180
+    },
+    "facing=south,in_structure=true,active=false": {
+      "model": "soulforge:block/intermediate_smeltery_controller",
+      "y": 180
+    },
+    "facing=south,in_structure=true,active=true": {
+      "model": "soulforge:block/intermediate_smeltery_controller_active",
+      "y": 180
     },
     "facing=west,in_structure=false,active=false": {
       "model": "soulforge:block/intermediate_smeltery_controller",
       "y": 270
     },
     "facing=west,in_structure=false,active=true": {
-      "model": "soulforge:block/intermediate_smeltery_controller",
+      "model": "soulforge:block/intermediate_smeltery_controller_active",
       "y": 270
     },
     "facing=west,in_structure=true,active=false": {
@@ -61,7 +61,7 @@
       "y": 270
     },
     "facing=west,in_structure=true,active=true": {
-      "model": "soulforge:block/intermediate_smeltery_controller",
+      "model": "soulforge:block/intermediate_smeltery_controller_active",
       "y": 270
     }
   }

@@ -1,0 +1,14 @@
+{
+  "type": "soulforge:alloying",
+  "inputs": [
+    "soulforge:activated_blazing_blood",
+    "soulforge:molten_quartz"
+  ],
+  "amounts": [800, 200],
+  "output": {
+    "id": "soulforge:ionized_blazing_blood",
+    "amount": 1000
+  },
+  "temperature": 3500,
+  "color": 10066176
+}

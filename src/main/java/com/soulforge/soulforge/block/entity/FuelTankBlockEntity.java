@@ -9,8 +9,9 @@ import net.minecraft.world.level.storage.ValueOutput;
 import net.neoforged.neoforge.transfer.fluid.FluidStacksResourceHandler;
 
 /**
- * Simple fuel tank block entity. Holds a fluid tank and exposes it via capability.
- * The items-blocks-fluids teammate may replace or extend this class.
+ * 燃料储罐方块实体：一个单槽流体罐。
+ *
+ * <p>它是炉子的燃料来源——控制器在结构内扫描这些方块并从中抽取燃料液体。
  */
 public class FuelTankBlockEntity extends BlockEntity {
     private static final int TANK_CAPACITY = 4000;
@@ -36,7 +37,7 @@ public class FuelTankBlockEntity extends BlockEntity {
     }
 
     @Override
-    public void loadAdditional(ValueInput input) {
+    protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
         input.child(TAG_TANK).ifPresent(tank::deserialize);
     }
